@@ -443,6 +443,12 @@ h1 .first { font-weight: 300; font-stretch: 112%; letter-spacing: -.01em; }
   font-size: 1.0625rem;
   font-weight: 600;
 }
+.spec dd.spec-title {
+  font-size: 1.1875rem;
+  line-height: 1.35;
+  font-stretch: 104%;
+  text-wrap: balance;
+}
 .spec dd span { display: block; }
 .spec dd span + span { margin-top: 2px; }
 
