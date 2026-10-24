@@ -1,0 +1,14 @@
+BEGIN:VCARD
+VERSION:3.0
+N;CHARSET=UTF-8:Thomson;Michael;;;
+FN;CHARSET=UTF-8:Michael Thomson
+TITLE;CHARSET=UTF-8:Master's Student, Mechanical Engineering
+ORG;CHARSET=UTF-8:University of Cape Town
+EMAIL;TYPE=INTERNET,WORK:thmmic028@myuct.ac.za
+TEL;TYPE=CELL:+27818032120
+ADR;TYPE=WORK:;;;Cape Town;;;South Africa
+URL:https://mister-wobbles.github.io/
+X-SOCIALPROFILE;TYPE=linkedin:https://www.linkedin.com/in/michaelgt
+X-SOCIALPROFILE;TYPE=github:https://github.com/Mister-Wobbles
+NOTE;CHARSET=UTF-8:Materials qualification for laser powder bed fusion\, with a background in embedded systems\, control systems\, quality and safety management.
+END:VCARD
