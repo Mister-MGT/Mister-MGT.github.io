@@ -16,8 +16,8 @@
 <meta property="profile:last_name" content="Thomson">
 <meta name="twitter:card" content="summary">
 
-<meta name="theme-color" content="#E7E9EA" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0F1215" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#0F1215">
+<meta name="color-scheme" content="dark">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 
 <script>
@@ -28,7 +28,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,300..800&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,300..800&family=IBM+Plex+Mono:wght@500&family=Montserrat:wght@500;600&display=swap">
 <link rel="stylesheet" href="assets/site.css">
 <script src="assets/site.js" defer></script>
 <script src="assets/plate.js" defer></script>
@@ -38,24 +38,12 @@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
   <symbol id="i-save" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></symbol>
   <symbol id="i-share" viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="m16 6-4-4-4 4"/><path d="M12 2v13"/></symbol>
-  <symbol id="i-mail" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
-  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></symbol>
-  <symbol id="i-linkedin" viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></symbol>
-  <symbol id="i-github" viewBox="0 0 24 24"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></symbol>
-  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></symbol>
-  <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
 </svg>
 
 <div class="page">
 
   <header class="topbar">
-    <a class="mark" href="./" aria-label="Michael Thomson, home">
-      <svg viewBox="0 0 240 120" aria-hidden="true" focusable="false">
-        <polygon points="0,120 0,0 30,0 65,58 100,0 130,0 130,120 104,120 104,46 73,98 57,98 26,46 26,120"/>
-        <polygon points="146,0 240,0 240,26 206,26 206,120 180,120 180,26 146,26"/>
-      </svg>
-    </a>
     <p class="clock mono" data-clock hidden><span>Cape Town</span> <time data-clock-time></time></p>
   </header>
 
@@ -71,7 +59,7 @@
       </div>
     </figure>
 
-    <p class="eyebrow mono">MSc · Mechanical Engineering</p>
+    <p class="eyebrow label">MSc · Mechanical Engineering</p>
     <h1>
       <span class="line"><span class="first">Michael</span></span>
       <span class="line"><span>Thomson</span></span>
@@ -95,42 +83,38 @@
 
     <section class="section" aria-labelledby="h-contact">
       <div class="section-head" data-reveal>
+        <span class="section-num" aria-hidden="true">01</span>
         <h2 id="h-contact">Get in touch</h2>
-        <span class="mono">01</span>
       </div>
       <ul class="rows">
         <li class="row" data-reveal style="--i:1">
           <a class="row-link" href="mailto:thmmic028@myuct.ac.za">
-            <span class="row-icon"><svg class="icon" aria-hidden="true"><use href="#i-mail"/></svg></span>
-            <span class="row-text"><span class="row-label">Email</span><span class="row-value">thmmic028@myuct.ac.za</span></span>
+            <span class="row-label label">Email</span>
+            <span class="row-value">thmmic028@myuct.ac.za</span>
           </a>
-          <button class="row-copy" type="button" data-copy="thmmic028@myuct.ac.za" data-copy-label="Email copied" aria-label="Copy email address">
-            <svg class="icon i-copy" aria-hidden="true"><use href="#i-copy"/></svg>
-            <svg class="icon i-check" aria-hidden="true"><use href="#i-check"/></svg>
+          <button class="row-copy label" type="button" data-copy="thmmic028@myuct.ac.za" data-copy-label="Email copied" aria-label="Copy email address">
+            <span class="when-idle">Copy</span><span class="when-done">Copied</span>
           </button>
         </li>
         <li class="row" data-reveal style="--i:2">
           <a class="row-link" href="tel:+27818032120">
-            <span class="row-icon"><svg class="icon" aria-hidden="true"><use href="#i-phone"/></svg></span>
-            <span class="row-text"><span class="row-label">Phone</span><span class="row-value">+27 81 803 2120</span></span>
+            <span class="row-label label">Phone</span>
+            <span class="row-value">+27 81 803 2120</span>
           </a>
-          <button class="row-copy" type="button" data-copy="+27818032120" data-copy-label="Number copied" aria-label="Copy phone number">
-            <svg class="icon i-copy" aria-hidden="true"><use href="#i-copy"/></svg>
-            <svg class="icon i-check" aria-hidden="true"><use href="#i-check"/></svg>
+          <button class="row-copy label" type="button" data-copy="+27818032120" data-copy-label="Number copied" aria-label="Copy phone number">
+            <span class="when-idle">Copy</span><span class="when-done">Copied</span>
           </button>
         </li>
         <li class="row" data-reveal style="--i:3">
           <a class="row-link" href="https://www.linkedin.com/in/michaelgt" rel="noopener">
-            <span class="row-icon"><svg class="icon" aria-hidden="true"><use href="#i-linkedin"/></svg></span>
-            <span class="row-text"><span class="row-label">LinkedIn</span><span class="row-value">in/michaelgt</span></span>
-            <svg class="icon row-go" aria-hidden="true"><use href="#i-arrow"/></svg>
+            <span class="row-label label">LinkedIn</span>
+            <span class="row-value">in/michaelgt</span>
           </a>
         </li>
         <li class="row" data-reveal style="--i:4">
           <a class="row-link" href="https://github.com/Mister-Wobbles" rel="noopener">
-            <span class="row-icon"><svg class="icon" aria-hidden="true"><use href="#i-github"/></svg></span>
-            <span class="row-text"><span class="row-label">GitHub</span><span class="row-value">Mister-Wobbles</span></span>
-            <svg class="icon row-go" aria-hidden="true"><use href="#i-arrow"/></svg>
+            <span class="row-label label">GitHub</span>
+            <span class="row-value">Mister-Wobbles</span>
           </a>
         </li>
       </ul>
@@ -138,51 +122,38 @@
 
     <section class="section" aria-labelledby="h-research">
       <div class="section-head" data-reveal>
+        <span class="section-num" aria-hidden="true">02</span>
         <h2 id="h-research">Research</h2>
-        <span class="mono">02</span>
       </div>
-      <p class="lede" data-reveal style="--i:1">Qualifying materials for <em>laser powder bed fusion</em>, building on a background in embedded systems, control, and quality and safety management.</p>
-      <ul class="tags" data-reveal style="--i:2" aria-label="Areas of expertise">
-        <li>Additive manufacturing</li>
-        <li>Materials qualification</li>
-        <li>Embedded systems</li>
-        <li>Control systems</li>
-        <li>Quality management</li>
-        <li>Safety management</li>
-      </ul>
+      <dl class="spec">
+        <div class="spec-row" data-reveal style="--i:1">
+          <dt class="label">Process</dt>
+          <dd>Laser powder bed fusion</dd>
+        </div>
+        <div class="spec-row" data-reveal style="--i:2">
+          <dt class="label">Focus</dt>
+          <dd>Materials qualification</dd>
+        </div>
+        <div class="spec-row" data-reveal style="--i:3">
+          <dt class="label">Background</dt>
+          <dd>
+            <span>Embedded systems</span>
+            <span>Control systems</span>
+            <span>Quality and safety management</span>
+            <span>Aviation</span>
+          </dd>
+        </div>
+      </dl>
     </section>
 
-    <!-- Projects: when the portfolio is ready, replace the .queue card with
-         project rows, e.g.
-      <ul class="rows">
-        <li class="row" data-reveal>
-          <a class="row-link" href="projects/example/">
-            <span class="row-text"><span class="row-label">2026 · Research</span><span class="row-value">Project name</span></span>
-            <svg class="icon row-go" aria-hidden="true"><use href="#i-arrow"/></svg>
-          </a>
-        </li>
-      </ul>
-    -->
-    <section class="section" aria-labelledby="h-projects">
-      <div class="section-head" data-reveal>
-        <h2 id="h-projects">Projects</h2>
-        <span class="mono">03</span>
-      </div>
-      <div class="queue" data-reveal style="--i:1">
-        <p class="queue-label mono">In the build queue</p>
-        <h3>Project portfolio</h3>
-        <p>Write-ups of research and engineering work are on the way. This page will grow into the full portfolio, so bookmark it to follow along.</p>
-        <div class="progress" aria-hidden="true"></div>
-        <div class="queue-meta mono" aria-hidden="true"><span>Printing</span><span>Layer by layer</span></div>
-      </div>
-    </section>
+    <!-- Projects: add a "03 Projects" section here when the portfolio is ready,
+         reusing the .rows list markup above. -->
 
   </div>
   </main>
 
   <footer class="footer">
     <span>© <span data-year>2026</span> Michael Thomson</span>
-    <span class="mono">Cape Town · ZA</span>
   </footer>
 
 </div>
