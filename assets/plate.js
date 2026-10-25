@@ -53,7 +53,7 @@
   var LAYER_UM = 30;        // nominal layer thickness shown in the readout
 
   /* ---------- Timing ---------- */
-  var LAYERS = 6;           // layers printed before the build completes
+  var LAYERS = 3;           // layers printed before the build completes
   var SCAN_MS = 2200;       // marking time per layer
   var JUMP = 8;             // galvo jumps are this many times faster than marking
   var PAUSE_MS = 340;
