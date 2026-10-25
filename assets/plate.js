@@ -1,15 +1,20 @@
 /* Build plate: a laser powder bed fusion build of the MT monogram.
    Each layer is hatched in a meander, contoured, then recoated with
    powder. Hatch angle rotates 67° per layer, as on a real machine.
+   After the last layer the part cools, the powder clears and the camera
+   tilts from the top-down view into an isometric view of the finished,
+   extruded part. The final frame is static.
 
    Performance notes
    - Hatch vectors are computed analytically (line/polygon intersection),
      once per layer. No per-pixel hit testing.
-   - Three offscreen canvases (powder, solidified metal, heat) are
-     composited per frame: four drawImage calls plus a glow sprite.
-   - Device pixel ratio is capped at 2. Rendering stops when the plate is
-     off screen or the tab is hidden.
-   - prefers-reduced-motion renders a finished, static build. */
+   - The 3D view is an orthographic projection drawn with plain 2D canvas
+     paths. Each face of the extrusion is a plane, so the scanned layer is
+     mapped onto the top face with a single affine transform.
+   - Device pixel ratio is capped at 2. Rendering pauses when the plate is
+     off screen or the tab is hidden, and stops for good once the build is
+     finished.
+   - prefers-reduced-motion shows the finished isometric part straight away. */
 (function () {
   'use strict';
 
@@ -19,15 +24,17 @@
   var ctx = canvas && canvas.getContext && canvas.getContext('2d');
   if (!ctx) return;
 
-  var hudLayer = plate.querySelector('[data-layer]');
-  var hudZ = plate.querySelector('[data-z]');
-  var hudAngle = plate.querySelector('[data-angle]');
+  var slots = {
+    tr: plate.querySelector('[data-slot="tr"]'),
+    bl: plate.querySelector('[data-slot="bl"]'),
+    br: plate.querySelector('[data-slot="br"]')
+  };
 
   var reduceMotion = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
   var conn = navigator.connection || {};
   var lowPower = (navigator.hardwareConcurrency || 4) <= 2 || conn.saveData === true;
 
-  /* ---------- Palette (chamber is dark in both themes) ---------- */
+  /* ---------- Palette (the chamber is always dark) ---------- */
   var C = {
     chamber: '#111518',
     powder: [70, 78, 86],
@@ -42,18 +49,32 @@
     [[0,120],[0,0],[30,0],[65,58],[100,0],[130,0],[130,120],[104,120],[104,46],[73,98],[57,98],[26,46],[26,120]],
     [[146,0],[240,0],[240,26],[206,26],[206,120],[180,120],[180,26],[146,26]]
   ];
+  var EXTRUDE = 30;         // part height in grid units (exaggerated for legibility)
+  var LAYER_UM = 30;        // nominal layer thickness shown in the readout
 
   /* ---------- Timing ---------- */
-  var SCAN_MS = 2600;       // marking time per layer
+  var LAYERS = 6;           // layers printed before the build completes
+  var SCAN_MS = 2200;       // marking time per layer
   var JUMP = 8;             // galvo jumps are this many times faster than marking
-  var PAUSE_MS = 380;
-  var RECOAT_MS = 950;
+  var PAUSE_MS = 340;
+  var RECOAT_MS = 850;
   var INTRO_MS = 700;
+  var COOL_MS = 900;
+  var REVEAL_MS = 2600;     // top-down to isometric camera move
+  var SHINE_MS = 1400;
   var HEAT_FADE_MS = 260;   // time constant for the melt track cooling
+
+  /* Isometric camera: rotate 45° about the build axis, then tilt so the
+     plate's axes sit at 30° on screen. */
+  var ISO_AZ = -Math.PI / 4;
+  var ISO_TILT = Math.atan(Math.SQRT2);   // 54.74°
 
   /* ---------- State ---------- */
   var W = 0, H = 0, dpr = 1;
-  var polys = [];           // part polygons in CSS px
+  var plan = { s: 1, ox: 0, oy: 0 };   // grid -> CSS px for the top-down view
+  var polys = [];           // part polygons in CSS px (top-down)
+  var walls = [];           // extrusion side faces in grid units
+  var finalView = null;
   var hatch = 3;
   var layers = { bg: null, solid: null, heat: null, glow: null };
   var moves = [], mi = 0, mp = 0, speed = 1;
@@ -77,6 +98,11 @@
       return (seed - 1) / 2147483646;
     };
   }
+
+  function clamp01(t) { return t < 0 ? 0 : t > 1 ? 1 : t; }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function easeInOut(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+  function smooth(a, b, t) { t = clamp01((t - a) / (b - a)); return t * t * (3 - 2 * t); }
 
   function paintPowder() {
     var g = layers.bg.x;
@@ -118,13 +144,85 @@
 
   function layoutPart() {
     var s = Math.min((W * 0.6) / 240, (H * 0.52) / 120);
-    var ox = (W - 240 * s) / 2;
-    var oy = (H - 120 * s) / 2;
+    plan = { s: s, ox: (W - 240 * s) / 2, oy: (H - 120 * s) / 2 };
     polys = GLYPHS.map(function (poly) {
-      return poly.map(function (p) { return [ox + p[0] * s, oy + p[1] * s]; });
+      return poly.map(function (p) { return [plan.ox + p[0] * s, plan.oy + p[1] * s]; });
     });
     hatch = Math.max(2.4, Math.min(4, s * 3.1));
+    finalView = fitFinalView();
   }
+
+  /* Side faces of the extrusion, with outward normals in grid space. */
+  function buildWalls() {
+    walls = [];
+    GLYPHS.forEach(function (poly) {
+      var area = 0;
+      for (var i = 0; i < poly.length; i++) {
+        var p = poly[i], q = poly[(i + 1) % poly.length];
+        area += p[0] * q[1] - q[0] * p[1];
+      }
+      var sign = area > 0 ? 1 : -1;
+      for (var j = 0; j < poly.length; j++) {
+        var a = poly[j], b = poly[(j + 1) % poly.length];
+        var dx = b[0] - a[0], dy = b[1] - a[1];
+        var len = Math.hypot(dx, dy);
+        walls.push({ a: a, b: b, nx: sign * dy / len, ny: -sign * dx / len });
+      }
+    });
+  }
+
+  /* ---------- Orthographic camera ---------- */
+  function makeView(az, tilt, s, cx, cy) {
+    return { ca: Math.cos(az), sa: Math.sin(az), cb: Math.cos(tilt), sb: Math.sin(tilt), s: s, cx: cx, cy: cy };
+  }
+
+  // Grid point (x, y, z) -> CSS px. Also returns depth toward the viewer.
+  function project(v, x, y, z) {
+    var px = x - 120, py = y - 60;
+    var rx = px * v.ca - py * v.sa;
+    var ry = px * v.sa + py * v.ca;
+    return [v.cx + v.s * rx, v.cy + v.s * (ry * v.cb - z * v.sb), ry];
+  }
+
+  // Affine transform that maps the plane at height z onto the screen.
+  function setPlane(v, z) {
+    var a = v.s * v.ca, c = -v.s * v.sa;
+    var b = v.s * v.sa * v.cb, d = v.s * v.ca * v.cb;
+    var e = v.cx - 120 * a - 60 * c;
+    var f = v.cy - 120 * b - 60 * d - v.s * z * v.sb;
+    ctx.setTransform(dpr * a, dpr * b, dpr * c, dpr * d, dpr * e, dpr * f);
+  }
+
+  function fitFinalView() {
+    var probe = makeView(ISO_AZ, ISO_TILT, 1, 0, 0);
+    var x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    GLYPHS.forEach(function (poly) {
+      poly.forEach(function (p) {
+        [0, EXTRUDE].forEach(function (z) {
+          var q = project(probe, p[0], p[1], z);
+          if (q[0] < x0) x0 = q[0];
+          if (q[0] > x1) x1 = q[0];
+          if (q[1] < y0) y0 = q[1];
+          if (q[1] > y1) y1 = q[1];
+        });
+      });
+    });
+    var s = Math.min((W * 0.66) / (x1 - x0), (H * 0.6) / (y1 - y0));
+    return { s: s, cx: W / 2 - s * (x0 + x1) / 2, cy: H / 2 - s * (y0 + y1) / 2 + H * 0.02 };
+  }
+
+  function viewAt(t) {
+    var e = easeInOut(clamp01(t));
+    return makeView(
+      lerp(0, ISO_AZ, e),
+      lerp(0, ISO_TILT, e),
+      lerp(plan.s, finalView.s, e),
+      lerp(W / 2, finalView.cx, e),
+      lerp(H / 2, finalView.cy, e)
+    );
+  }
+
+  /* ---------- Build planning ---------- */
 
   /* Hatch vectors for a layer: meander scan, clipped to the part. */
   function planLayer(n) {
@@ -205,17 +303,23 @@
     list.push({ ax: ax, ay: ay, bx: bx, by: by, len: len, mark: mark, kind: kind });
   }
 
-  function setHud(n, deg) {
-    if (hudLayer) hudLayer.textContent = String(n).padStart(3, '0');
-    if (hudZ) hudZ.textContent = (n * 0.03).toFixed(3);
-    if (hudAngle) hudAngle.textContent = deg + '°';
+  /* ---------- Readout ---------- */
+  function setSlot(key, label, value) {
+    var el = slots[key];
+    if (!el) return;
+    el.firstChild.nodeValue = label + ' ';
+    el.querySelector('b').textContent = value;
   }
 
+  function zText(n) { return (n * LAYER_UM / 1000).toFixed(3); }
+
   function beginLayer(n) {
-    var plan = planLayer(n);
-    moves = plan.moves;
+    var p = planLayer(n);
+    moves = p.moves;
     mi = 0; mp = 0;
-    setHud(n, plan.deg);
+    setSlot('tr', 'Layer', String(n).padStart(3, '0'));
+    setSlot('bl', 'z', zText(n));
+    setSlot('br', 'Hatch', p.deg + '°');
   }
 
   function markSegment(m, t0, t1) {
@@ -233,6 +337,14 @@
     h.beginPath(); h.moveTo(x0, y0); h.lineTo(x1, y1); h.stroke();
   }
 
+  function buryLayer(x0, x1) {
+    var s = layers.solid.x;
+    s.globalCompositeOperation = 'destination-out';
+    s.fillStyle = 'rgba(0,0,0,0.62)';
+    s.fillRect(x0, 0, Math.max(0, x1 - x0), H);
+    s.globalCompositeOperation = 'source-over';
+  }
+
   function spawnSparks(x, y, dt) {
     if (sparks.length > (lowPower ? 14 : 36)) return;
     var count = dt * (lowPower ? 0.012 : 0.03);
@@ -247,6 +359,11 @@
       }
       count -= 1;
     }
+  }
+
+  function enterComplete() {
+    setSlot('tr', 'Build', 'Complete');
+    setSlot('bl', 'z', zText(LAYERS));
   }
 
   /* ---------- Simulation step ---------- */
@@ -281,6 +398,9 @@
           laser = { x: cm.ax + (cm.bx - cm.ax) * t, y: cm.ay + (cm.by - cm.ay) * t };
           spawnSparks(laser.x, laser.y, dt);
         }
+      } else if (layer >= LAYERS) {
+        phase = 'cool'; phaseT = 0;
+        enterComplete();
       } else {
         phase = 'pause'; phaseT = 0;
       }
@@ -288,20 +408,24 @@
       if (phaseT >= PAUSE_MS) { phase = 'recoat'; phaseT = 0; bladeX = -8; }
     } else if (phase === 'recoat') {
       var p = Math.min(1, phaseT / RECOAT_MS);
-      var e = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
-      var nx = -8 + (W + 16) * e;
+      var nx = -8 + (W + 16) * easeInOut(p);
       // Fresh powder buries the previous layer, which stays faintly visible
-      var s = layers.solid.x;
-      s.globalCompositeOperation = 'destination-out';
-      s.fillStyle = 'rgba(0,0,0,0.62)';
-      s.fillRect(bladeX, 0, Math.max(0, nx - bladeX), H);
-      s.globalCompositeOperation = 'source-over';
+      buryLayer(bladeX, nx);
       bladeX = nx;
       if (p >= 1) {
         layer++;
         beginLayer(layer);
         phase = 'scan'; phaseT = 0;
       }
+    } else if (phase === 'cool') {
+      if (phaseT >= COOL_MS) {
+        phase = 'reveal'; phaseT = 0;
+        setSlot('br', 'View', 'Iso');
+      }
+    } else if (phase === 'reveal') {
+      if (phaseT >= REVEAL_MS) { phase = 'shine'; phaseT = 0; }
+    } else if (phase === 'shine') {
+      if (phaseT >= SHINE_MS) { phase = 'done'; phaseT = 0; }
     }
 
     for (var i = sparks.length - 1; i >= 0; i--) {
@@ -314,8 +438,8 @@
     }
   }
 
-  /* ---------- Composite ---------- */
-  function render() {
+  /* ---------- Composite: top-down build ---------- */
+  function renderBuild() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalCompositeOperation = 'source-over';
     ctx.drawImage(layers.bg.c, 0, 0);
@@ -355,6 +479,139 @@
     }
   }
 
+  /* ---------- Composite: finished part ---------- */
+  function partPath() {
+    ctx.beginPath();
+    GLYPHS.forEach(function (poly) {
+      ctx.moveTo(poly[0][0], poly[0][1]);
+      for (var i = 1; i < poly.length; i++) ctx.lineTo(poly[i][0], poly[i][1]);
+      ctx.closePath();
+    });
+  }
+
+  function renderPart(t, shine) {
+    var v = viewAt(t);
+    var depowder = smooth(0, 0.7, t);
+    var metal = smooth(0.12, 0.65, t);
+
+    // Chamber, with the loose powder clearing away
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+    ctx.drawImage(layers.bg.c, 0, 0);
+    ctx.fillStyle = 'rgba(8,10,12,' + (0.5 * depowder).toFixed(3) + ')';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Build plate grid
+    if (depowder > 0) {
+      setPlane(v, 0);
+      ctx.lineWidth = 1 / v.s;
+      ctx.strokeStyle = 'rgba(233,236,238,' + (0.07 * depowder).toFixed(3) + ')';
+      ctx.beginPath();
+      for (var gx = -60; gx <= 300; gx += 20) { ctx.moveTo(gx, -60); ctx.lineTo(gx, 180); }
+      for (var gy = -60; gy <= 180; gy += 20) { ctx.moveTo(-60, gy); ctx.lineTo(300, gy); }
+      ctx.stroke();
+
+      // Contact shadow on the plate
+      ctx.save();
+      ctx.translate(7, 10);
+      partPath();
+      ctx.fillStyle = 'rgba(0,0,0,' + (0.45 * depowder).toFixed(3) + ')';
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Side walls, far to near, only those facing the camera
+    if (v.sb > 0.001) {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      var vis = [];
+      walls.forEach(function (w) {
+        var facing = w.nx * v.sa + w.ny * v.ca;
+        if (facing <= 0.001) return;
+        var p0 = project(v, w.a[0], w.a[1], 0), p1 = project(v, w.b[0], w.b[1], 0);
+        vis.push({ w: w, p0: p0, p1: p1, depth: (p0[2] + p1[2]) / 2, side: w.nx * v.ca - w.ny * v.sa });
+      });
+      vis.sort(function (m, n) { return m.depth - n.depth; });
+
+      vis.forEach(function (o) {
+        var w = o.w;
+        var p2 = project(v, w.b[0], w.b[1], EXTRUDE), p3 = project(v, w.a[0], w.a[1], EXTRUDE);
+        // Light from the upper left: left-facing walls bright, right-facing dark
+        var k = clamp01(0.5 - 0.5 * o.side);
+        var r = Math.round(lerp(44, 122, k)), g = Math.round(lerp(50, 132, k)), b = Math.round(lerp(57, 142, k));
+        ctx.beginPath();
+        ctx.moveTo(o.p0[0], o.p0[1]); ctx.lineTo(o.p1[0], o.p1[1]);
+        ctx.lineTo(p2[0], p2[1]); ctx.lineTo(p3[0], p3[1]);
+        ctx.closePath();
+        ctx.fillStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
+        ctx.fill();
+
+        // Layer lines, the signature of an additively built wall
+        ctx.lineWidth = 0.6;
+        ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+        ctx.beginPath();
+        for (var n = 1; n < LAYERS; n++) {
+          var z = EXTRUDE * n / LAYERS;
+          var q0 = project(v, w.a[0], w.a[1], z), q1 = project(v, w.b[0], w.b[1], z);
+          ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q1[0], q1[1]);
+        }
+        ctx.stroke();
+      });
+    }
+
+    // Top face: polished metal with the last scanned layer on it
+    setPlane(v, EXTRUDE);
+    ctx.save();
+    partPath();
+    ctx.clip();
+    if (metal > 0) {
+      var grd = ctx.createLinearGradient(0, 0, 240, 120);
+      grd.addColorStop(0, '#E4E8EC');
+      grd.addColorStop(1, '#A9B2BA');
+      ctx.globalAlpha = metal;
+      ctx.fillStyle = grd;
+      ctx.fillRect(-10, -10, 260, 140);
+    }
+    ctx.globalAlpha = lerp(1, 0.4, metal);
+    ctx.transform(1 / (dpr * plan.s), 0, 0, 1 / (dpr * plan.s), -plan.ox / plan.s, -plan.oy / plan.s);
+    ctx.drawImage(layers.solid.c, 0, 0);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+
+    // Specular sweep across the top face, once
+    if (shine > 0 && shine < 1) {
+      setPlane(v, EXTRUDE);
+      ctx.save();
+      partPath();
+      ctx.clip();
+      var u = lerp(-80, 330, easeInOut(shine));
+      var sg = ctx.createLinearGradient(u - 50, -30, u + 50, 30);
+      sg.addColorStop(0, 'rgba(255,255,255,0)');
+      sg.addColorStop(0.5, 'rgba(255,255,255,0.32)');
+      sg.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = sg;
+      ctx.fillRect(-10, -10, 260, 140);
+      ctx.restore();
+    }
+
+    // Crisp top edge
+    if (metal > 0) {
+      setPlane(v, EXTRUDE);
+      partPath();
+      ctx.lineWidth = 1.1 / v.s;
+      ctx.strokeStyle = 'rgba(240,243,246,' + (0.6 * metal).toFixed(3) + ')';
+      ctx.stroke();
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+
+  function render() {
+    if (phase === 'reveal') renderPart(phaseT / REVEAL_MS, 0);
+    else if (phase === 'shine') renderPart(1, phaseT / SHINE_MS);
+    else if (phase === 'done') renderPart(1, 0);
+    else renderBuild();
+  }
+
   /* ---------- Loop control ---------- */
   function frame(now) {
     if (!running) return;
@@ -362,11 +619,12 @@
     last = now;
     step(dt);
     render();
+    if (phase === 'done') { running = false; return; }
     raf = requestAnimationFrame(frame);
   }
 
   function shouldRun() {
-    return visible && !document.hidden && !reduceMotion.matches && W > 0;
+    return visible && !document.hidden && !reduceMotion.matches && W > 0 && phase !== 'done';
   }
 
   function sync() {
@@ -378,22 +636,19 @@
     }
   }
 
-  /* Finished build for reduced motion: three layers, already fused. */
-  function renderStatic() {
-    var keep = layer;
-    for (var n = Math.max(1, keep - 2); n <= keep; n++) {
-      if (n > 1) {
-        var s = layers.solid.x;
-        s.globalCompositeOperation = 'destination-out';
-        s.fillStyle = 'rgba(0,0,0,0.62)';
-        s.fillRect(0, 0, W, H);
-        s.globalCompositeOperation = 'source-over';
-      }
+  /* Jump straight to the finished part: last three layers fused, iso view. */
+  function finishNow() {
+    for (var n = Math.max(1, LAYERS - 2); n <= LAYERS; n++) {
+      if (n > 1) buryLayer(0, W);
       beginLayer(n);
       moves.forEach(function (m) { if (m.mark) markSegment(m, 0, 1); });
     }
     layers.heat.x.clearRect(0, 0, W, H);
     laser = null; sparks = [];
+    layer = LAYERS;
+    phase = 'done'; phaseT = 0;
+    enterComplete();
+    setSlot('br', 'View', 'Iso');
     render();
   }
 
@@ -418,9 +673,9 @@
     layoutPart();
     sparks = [];
 
-    if (reduceMotion.matches) {
-      layer = Math.max(layer, 3);
-      renderStatic();
+    var finished = phase === 'cool' || phase === 'reveal' || phase === 'shine' || phase === 'done';
+    if (reduceMotion.matches || finished) {
+      finishNow();
     } else {
       beginLayer(layer);
       if (phase !== 'intro') { phase = 'scan'; phaseT = 0; }
@@ -437,6 +692,7 @@
     resizeTimer = setTimeout(function () { setup(); sync(); }, 140);
   }
 
+  buildWalls();
   setup();
 
   if ('ResizeObserver' in window) new ResizeObserver(onResize).observe(plate);
