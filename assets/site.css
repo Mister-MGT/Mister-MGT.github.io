@@ -459,6 +459,11 @@ h1 .first { font-weight: 300; font-stretch: 112%; letter-spacing: -.01em; }
 }
 .spec dd span { display: block; }
 .spec dd span + span { margin-top: 2px; }
+.spec dd .spec-sub {
+  font-size: .9375rem;
+  font-weight: 500;
+  color: var(--steel);
+}
 
 @media (min-width: 40rem) {
   .spec-row {
