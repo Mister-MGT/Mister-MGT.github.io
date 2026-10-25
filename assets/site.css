@@ -223,7 +223,15 @@ button { font: inherit; color: inherit; }
   margin: var(--s-6) 0 var(--s-3);
   font-size: .9375rem;
   letter-spacing: .12em;
+  line-height: 1.5;
   color: var(--melt-ink);
+}
+/* Phones: two stacked lines, no separator. Wider: one line with a dot. */
+.eyebrow > span:not(.eyebrow-sep) { display: block; white-space: nowrap; }
+.eyebrow-sep { display: none; }
+@media (min-width: 40rem) {
+  .eyebrow > span:not(.eyebrow-sep) { display: inline; }
+  .eyebrow-sep { display: inline; }
 }
 
 h1 {

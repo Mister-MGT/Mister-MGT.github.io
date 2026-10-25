@@ -1,3 +1,7 @@
 theme: jekyll-theme-minimal
 title: Michael Thomson's Portfolio
 description: Bookmark this to keep an eye on my project updates!
+
+# Shown on GitHub only, not published to the site
+exclude:
+  - README.md

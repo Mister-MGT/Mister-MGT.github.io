@@ -2,7 +2,7 @@ BEGIN:VCARD
 VERSION:3.0
 N;CHARSET=UTF-8:Thomson;Michael;;;
 FN;CHARSET=UTF-8:Michael Thomson
-TITLE;CHARSET=UTF-8:Master's Student, Mechanical Engineering
+TITLE;CHARSET=UTF-8:MSc Candidate, Mechanical Engineering
 ORG;CHARSET=UTF-8:University of Cape Town
 PHOTO;ENCODING=b;TYPE=JPEG:/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAYEBQUFBAYFBQUH
  BgYHCQ8KCQgICRMNDgsPFhMXFxYTFRUYGyMeGBohGhUVHikfISQlJygnGB0rLismLiMmJyb/2w
@@ -561,8 +561,8 @@ PHOTO;ENCODING=b;TYPE=JPEG:/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAYEBQUFBAYFBQUH
  nyxbGtyjF8x3HuatIvHSoIFqyn1rmgtC2OXjmnDOOaaD6Dk078QK2JP//Z
 EMAIL;TYPE=INTERNET,WORK:thmmic028@myuct.ac.za
 TEL;TYPE=CELL:+27818032120
-ADR;TYPE=WORK:;;;Cape Town;;;South Africa
-URL:https://mister-wobbles.github.io/
+ADR;TYPE=WORK:;;University of Cape Town;Cape Town;;;South Africa
+URL:https://mister-mgt.github.io/
 X-SOCIALPROFILE;TYPE=linkedin:https://www.linkedin.com/in/michaelgt
 NOTE;CHARSET=UTF-8:Materials qualification for laser powder bed fusion\, wi
  th a background in embedded systems\, control systems\, quality and safety
