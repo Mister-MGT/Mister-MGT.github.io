@@ -25,6 +25,8 @@ Plain HTML, CSS and JavaScript. No framework, no build step and no tracking. Git
 | [`assets/site.css`](assets/site.css) | Styles, with the colour and type tokens at the top |
 | [`assets/site.js`](assets/site.js) | Scroll reveals, Cape Town clock, share and copy buttons |
 | [`assets/plate.js`](assets/plate.js) | The LPBF build animation |
+| [`thesis/index.html`](thesis/index.html) | A plain-English explainer of my MSc thesis |
+| [`assets/thesis.css`](assets/thesis.css), [`assets/thesis.js`](assets/thesis.js) | Styles and interactive figures for the thesis page (synthetic data, Gaussian processes solved in the browser) |
 
 To run it locally, clone the repo and serve the folder:
 

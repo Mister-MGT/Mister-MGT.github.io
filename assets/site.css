@@ -457,6 +457,28 @@ h1 .first { font-weight: 300; font-stretch: 112%; letter-spacing: -.01em; }
   font-stretch: 104%;
   text-wrap: balance;
 }
+.spec-link { display: block; text-decoration: none; touch-action: manipulation; }
+.spec-link > span:first-child {
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 1px;
+  text-underline-offset: .22em;
+  transition: text-decoration-color var(--d-state) var(--ease-std);
+}
+.spec dd .spec-more {
+  display: inline-flex;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+  font-size: .75rem;
+  color: var(--melt-ink);
+}
+.spec-more > span { display: inline; transition: transform var(--d-state) var(--ease-std); }
+.spec-link:active > span:first-child { color: var(--melt-ink); }
+@media (hover: hover) {
+  .spec-link:hover > span:first-child { text-decoration-color: currentColor; }
+  .spec-link:hover .spec-more > span { transform: translateX(3px); }
+}
+
 .spec dd span { display: block; }
 .spec dd span + span { margin-top: 2px; }
 .spec dd .spec-sub {
